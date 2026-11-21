@@ -80,8 +80,15 @@ def main():
         str(ROOT / "target/debug/transbox"), "--runtime", str(ROOT / ".payload/dev"),
         "--adb", args.adb, "--device", device, "--proxy-only", "--duration", "120",
     ], stdout=subprocess.PIPE, text=True, cwd=ROOT)
-    output = queue.Queue()
-    reader = threading.Thread(target=lambda: [output.put(line) for line in process.stdout], daemon=True)
+    stdout = process.stdout
+    assert stdout is not None, "Launcher stdout must be piped"
+    output: queue.Queue[str] = queue.Queue()
+
+    def read_output():
+        for line in stdout:
+            output.put(line)
+
+    reader = threading.Thread(target=read_output, daemon=True)
     reader.start()
     owned_forward = None
     try:
