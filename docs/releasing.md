@@ -22,6 +22,7 @@ prereleases use suffixes such as `-alpha.2`.
 
 - **CI** runs checks on Linux and Windows.
 - **Build and release → Run workflow** builds downloadable Actions artifacts.
+  Set `source_ref` to rebuild a specific tag or commit with the current workflow.
 - Pushing a `v*` tag validates the version/changelog, builds the bundle, checks
   startup on Windows, and creates a **draft release**. Prerelease tags are marked
   accordingly. Inspect and publish the draft on GitHub.

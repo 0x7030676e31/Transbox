@@ -4,6 +4,11 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Source tag or commit (blank uses selected ref)
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -24,21 +29,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ inputs.source_ref || github.ref }}
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
       - name: Validate tag before building
+        env:
+          SOURCE_REF: ${{ inputs.source_ref || github.ref }}
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            python scripts/release.py check --tag "$GITHUB_REF_NAME"
+          if [[ "$SOURCE_REF" == refs/tags/* ]]; then
+            python scripts/release.py check --tag "${SOURCE_REF#refs/tags/}"
+          elif [[ "$SOURCE_REF" == v[0-9]* ]]; then
+            python scripts/release.py check --tag "$SOURCE_REF"
           else
             python scripts/release.py check
           fi
       - name: Install pinned Rust toolchain
         run: rustup show
-      - name: Install Android NDK
-        run: sdkmanager --install 'ndk;29.0.13846066'
+      - name: Set up Android SDK and pinned NDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: 'ndk;29.0.13846066'
+          log-accepted-android-sdk-licenses: false
       - name: Build bundled Windows executable and notices
         run: python scripts/build.py --ndk "$ANDROID_HOME/ndk/29.0.13846066"
       - name: Prepare release notes
