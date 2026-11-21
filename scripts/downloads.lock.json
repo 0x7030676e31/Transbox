@@ -1,0 +1,20 @@
+{
+  "chromium-win64": {
+    "version": "160.0.8177.0 (snapshot 1751372)",
+    "url": "https://storage.googleapis.com/chromium-browser-snapshots/Win_x64/1751372/chrome-win.zip",
+    "file": "chromium-win64.zip",
+    "sha256": "ca3517072b38d998a9521a0f0b0795aa410eca013c0e95a74f10a00da1fe25dc"
+  },
+  "adb-windows": {
+    "version": "37.0.3",
+    "url": "https://dl.google.com/android/repository/platform-tools_r37.0.3-win.zip",
+    "file": "platform-tools-r37.0.3-windows.zip",
+    "sha256": "89d108360a3bf2924d3bea837239edaccc22fd6ff5befd3787c4348a9fe4f09d"
+  },
+  "llvm-mingw-linux": {
+    "version": "20261117",
+    "url": "https://github.com/mstorsjo/llvm-mingw/releases/download/20261117/llvm-mingw-20261117-ucrt-ubuntu-22.04-x86_64.tar.xz",
+    "file": "llvm-mingw.tar.xz",
+    "sha256": "e7a15a49a2ea95e9f3d8a9d0cfabe5052a4b10fb4777cc54de5a8c27b64bb701"
+  }
+}

@@ -1,0 +1,103 @@
+name: Build and release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  build:
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Validate tag before building
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            python scripts/release.py check --tag "$GITHUB_REF_NAME"
+          else
+            python scripts/release.py check
+          fi
+      - name: Install pinned Rust toolchain
+        run: rustup show
+      - name: Install Android NDK
+        run: sdkmanager --install 'ndk;29.0.13846066'
+      - name: Build bundled Windows executable and notices
+        run: python scripts/build.py --ndk "$ANDROID_HOME/ndk/29.0.13846066"
+      - name: Prepare release notes
+        run: python scripts/release.py notes --output dist/RELEASE_NOTES.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-release
+          path: dist/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  windows-smoke:
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: windows-release
+          path: dist
+      - name: Verify checksum and packaged startup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $executables = @(Get-ChildItem dist -Filter '*.exe')
+          if ($executables.Count -ne 1) { throw 'Expected exactly one release executable' }
+          $exe = $executables[0]
+          $expected = (Get-Content "$($exe.FullName).sha256").Split(' ')[0]
+          $actual = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash
+          if ($actual -ne $expected) { throw 'Executable checksum mismatch' }
+          $info = Get-Content ($exe.FullName -replace '\.exe$', '.build.json') | ConvertFrom-Json
+          $version = & $exe.FullName --version
+          if ($LASTEXITCODE -ne 0 -or $version -ne "transbox $($info.version)") {
+            throw "Packaged version mismatch: $version"
+          }
+          & $exe.FullName --list-devices
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled ADB startup failed' }
+
+  draft:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [build, windows-smoke]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: windows-release
+          path: dist
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          args=(--verify-tag --draft --title "Transbox $GITHUB_REF_NAME" --notes-file dist/RELEASE_NOTES.md)
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            args+=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/*.exe dist/*.sha256 dist/*.build.json dist/*.notices.zip "${args[@]}"

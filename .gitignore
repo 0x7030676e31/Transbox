@@ -1,0 +1,12 @@
+/target/
+/dist/
+/.tools/
+/.downloads/
+/.payload/
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+/.venv/
+/.idea/
+/.vscode/
