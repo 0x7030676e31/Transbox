@@ -497,7 +497,7 @@ dependencies = [
 
 [[package]]
 name = "transbox"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -514,11 +514,11 @@ dependencies = [
 
 [[package]]
 name = "transbox-core"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 
 [[package]]
 name = "transbox-relay"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 dependencies = [
  "transbox-core",
 ]

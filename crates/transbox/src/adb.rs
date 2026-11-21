@@ -17,8 +17,14 @@ pub struct Adb {
 
 pub fn command(executable: &Path) -> Command {
     let mut command = Command::new(executable);
-    // A remote ADB server would invalidate the promise of a local USB path.
-    command.args(["-H", "127.0.0.1", "-P", "5037"]);
+    // Keep ADB's local default so it can start a server on a fresh machine.
+    // An explicit -H (even loopback) disables automatic server startup. Remove
+    // environment overrides that could redirect commands to a remote server.
+    command
+        .args(["-P", "5037"])
+        .env_remove("ADB_SERVER_SOCKET")
+        .env_remove("ANDROID_ADB_SERVER_ADDRESS")
+        .env_remove("ANDROID_ADB_SERVER_PORT");
     #[cfg(windows)]
     let command = {
         let mut command = command;

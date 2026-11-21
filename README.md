@@ -4,7 +4,7 @@ A Rust launcher that runs Chromium through an Android phone's Internet connectio
 over USB ADB. The Windows executable bundles the browser, ADB, and native Android
 relays. Other applications keep using their normal connection.
 
-Experimental (`0.1.0-alpha.1`). Routing uses browser proxy settings, without
+Experimental (`0.1.0-alpha.2`). Routing uses browser proxy settings, without
 OS-enforced leak protection. Native Windows USB behavior and browser rendering
 still need real-machine validation.
 
@@ -16,8 +16,8 @@ and launch it. A working ADB USB driver is required, just as with scrcpy.
 No root or APK installation is needed.
 
 ```powershell
-.\transbox-v0.1.0-alpha.1-windows-x64.exe
-.\transbox-v0.1.0-alpha.1-windows-x64.exe --device SERIAL --url https://example.org
+.\transbox-v0.1.0-alpha.2-windows-x64.exe
+.\transbox-v0.1.0-alpha.2-windows-x64.exe --device SERIAL --url https://example.org
 ```
 
 Close the browser or press Ctrl+C to stop. Each session uses a temporary profile.
