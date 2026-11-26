@@ -84,12 +84,30 @@ jobs:
           $actual = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash
           if ($actual -ne $expected) { throw 'Executable checksum mismatch' }
           $info = Get-Content ($exe.FullName -replace '\.exe$', '.build.json') | ConvertFrom-Json
-          $version = & $exe.FullName --version
-          if ($LASTEXITCODE -ne 0 -or $version -ne "transbox $($info.version)") {
+          # GUI-subsystem executables need explicit waiting and redirected handles.
+          function Invoke-Packaged([string] $Argument) {
+            $stdout = Join-Path $env:RUNNER_TEMP 'transbox-stdout.txt'
+            $stderr = Join-Path $env:RUNNER_TEMP 'transbox-stderr.txt'
+            $process = Start-Process -FilePath $exe.FullName -ArgumentList $Argument -PassThru `
+              -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+            if (-not $process.WaitForExit(120000)) {
+              $process.Kill($true)
+              throw "Packaged command timed out: $Argument"
+            }
+            $process.WaitForExit()
+            $output = Get-Content $stdout -Raw
+            $errors = Get-Content $stderr -Raw
+            if ($process.ExitCode -ne 0) {
+              throw "Packaged command failed ($($process.ExitCode)): $Argument`n$errors"
+            }
+            return $output.Trim()
+          }
+          $version = Invoke-Packaged '--version'
+          if ($version -ne "transbox $($info.version)") {
             throw "Packaged version mismatch: $version"
           }
-          $listing = & $exe.FullName --list-devices
-          if ($LASTEXITCODE -ne 0 -or ($listing -join "`n") -notmatch 'List of devices attached') {
+          $listing = Invoke-Packaged '--list-devices'
+          if ($listing -notmatch 'List of devices attached') {
             throw 'Bundled ADB startup failed'
           }
           $listing
