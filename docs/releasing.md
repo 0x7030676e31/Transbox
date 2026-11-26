@@ -1,7 +1,7 @@
 # Releases
 
 The version lives in `[workspace.package].version` in `Cargo.toml`; all crates
-inherit it. Tags use `vVERSION`; the first published version is `v0.1.0-alpha.2`.
+inherit it. Tags use `vVERSION`; the current development version is `v0.2.0-alpha.1`.
 
 ## Next version
 
@@ -11,8 +11,8 @@ inherit it. Tags use `vVERSION`; the first published version is `v0.1.0-alpha.2`
 4. Commit and push the source, then tag it:
 
 ```sh
-git tag -a v0.1.0-alpha.2 -m "Transbox 0.1.0-alpha.2"
-git push origin v0.1.0-alpha.2
+git tag -a v0.2.0-alpha.1 -m "Transbox 0.2.0-alpha.1"
+git push origin v0.2.0-alpha.1
 ```
 
 Use a new version/tag for each release. `0.x` versions are experimental;
@@ -33,7 +33,7 @@ not physical USB or browser rendering. The workflows need a first push to run.
 ## Local build
 
 ```sh
-python3 scripts/release.py check --tag v0.1.0-alpha.2
+python3 scripts/release.py check --tag v0.2.0-alpha.1
 python3 scripts/build.py
 ```
 
@@ -41,7 +41,7 @@ python3 scripts/build.py
 inputs and hashes, and `.notices.zip` with dependency notices. Verify from `dist/`:
 
 ```sh
-sha256sum -c transbox-v0.1.0-alpha.2-windows-x64.exe.sha256
+sha256sum -c transbox-v0.2.0-alpha.1-windows-x64.exe.sha256
 ```
 
 Builds are unsigned. Review bundled Chromium/ADB versions before publishing;

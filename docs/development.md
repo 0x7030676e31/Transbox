@@ -1,50 +1,26 @@
 # Development
 
-## Toolchain
-
-- Linux x86_64 for packaged Windows builds.
-- Rust/rustup; `rust-toolchain.toml` selects the tested compiler and components.
-- Python 3.12+; build and release scripts use only its standard library.
-- Android NDK **29.0.13846066**, the version used by release automation.
-- ADB and Chromium on the Linux host for live development testing.
-
-The build script finds an NDK under `~/Android/Sdk/ndk`, `ANDROID_HOME`, or
-`ANDROID_SDK_ROOT`. Override with `--ndk PATH`, `ANDROID_NDK_HOME`, or
-`ANDROID_NDK_ROOT`. Release automation passes the exact NDK path explicitly.
+Packaged builds use Linux x86_64, the pinned Rust toolchain, Python 3.12+, and
+Android NDK 29.0.13846066. The build script finds an NDK under `~/Android/Sdk/ndk`
+or the Android SDK environment variables; `--ndk PATH` overrides discovery.
 
 ```sh
 python3 scripts/build.py --ndk "$HOME/Android/Sdk/ndk/29.0.13846066"
 ```
 
-The script builds four Android relays at API 24, prepares the Chromium/ADB
-payload, and cross-compiles the launcher for `x86_64-pc-windows-gnullvm`.
-LLVM-MinGW is downloaded to `.tools` if a suitable linker is not available.
-The Windows target config links the launcher runtime statically, including the
-unwinder, so it can start without a sidecar DLL before extracting its payload.
-Use `--abis arm64-v8a` for a smaller development build; release automation uses
-all four architectures.
+The script cross-compiles Android ARM64, ARMv7, x86_64 and x86 relays, then the
+Windows x64 launcher. LLVM-MinGW is downloaded if needed. The launcher runtime
+is statically linked so it starts before extracting its embedded payload.
+Upstream archives are hash-verified; Cargo versions are recorded in `Cargo.lock`.
+Build metadata includes the compiler, NDK, source commit and input hashes.
+Byte-for-byte reproducibility is not claimed.
 
-Archive URLs and SHA256 hashes are pinned in `scripts/downloads.lock.json`;
-Cargo dependencies are locked in `Cargo.lock`. Downloads with mismatching hashes
-are rejected. Build metadata records the compiler, NDK, source commit when
-available, and bundled dependency versions. Pinned inputs improve repeatability;
-byte-for-byte reproducibility is not claimed.
-
-## Local development
+## Local build and checks
 
 ```sh
 python3 scripts/build.py --dev --abis arm64-v8a
 target/debug/transbox --runtime .payload/dev --adb /usr/bin/adb --browser /usr/bin/chromium
-```
 
-An ordinary `cargo build` creates a launcher without embedded assets. Use
-`--runtime PATH` for an unpacked payload, or set `TRANSBOX_BUNDLE` to an absolute
-ZIP path at compile time. `--adb PATH` and `--browser PATH` override development
-executables. CLI reference: `cargo run -p transbox -- --help`.
-
-## Automated checks
-
-```sh
 cargo fmt --all -- --check
 cargo test --workspace --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
@@ -52,29 +28,40 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 python3 scripts/release.py check
 ```
 
-GitHub CI runs these checks on Linux and Windows. No phone or external test
-website is required. Release automation additionally builds all Android ABIs and
-exercises the packaged executable's version and ADB listing on Windows. That
-smoke check does not validate physical USB hardware or browser rendering.
+An ordinary `cargo build` has no embedded runtime. `--runtime`, `--adb` and
+`--browser` are development overrides. `TRANSBOX_BUNDLE` embeds a prebuilt ZIP
+at compile time. `--data-dir` selects an isolated encrypted store. `--ephemeral`,
+`--headless` and `--proxy-only` do not read or write that store; they are test modes.
 
-## Live phone checks
+CI runs tests and Clippy on Linux and Windows, including profile encryption,
+recovery, locking and process lifetime. Release automation builds all Android
+architectures and verifies packaged version, checksum and ADB startup on Windows.
+Hosted runners have no phone; their checks do not validate physical USB or browser UI.
+
+## Connected-phone tests
+
+Run these sequentially with an authorized USB phone:
 
 ```sh
 python3 tests/phone_smoke.py --upload
-target/debug/transbox --runtime .payload/dev --adb /usr/bin/adb \
-  --browser /usr/bin/chromium --headless --duration 30
+xvfb-run -a -s '-screen 0 1000x800x24 -nolisten tcp' \
+  python3 tests/gui_smoke.py --screenshots .tools/validation/gui
 ```
 
-The opt-in smoke test uses the connected phone's Internet for HTTPS, eight
-concurrent connections, private-destination denial, UDP rejection, an optional
-generated 64 KiB upload to `postman-echo.com`, and tunnel-loss shutdown. It removes
-only its own new ADB forward to simulate failure. It does not disable networking.
+The first checks phone-side DNS, TCP HTTP/HTTPS, concurrent requests, upload,
+private-destination rejection, UDP rejection and tunnel-loss cleanup.
+The GUI test additionally checks password setup/unlock/reset, persisted history,
+multiple browser windows, duplicate launch handling, WSS echo, WebRTC UDP
+restrictions, and browser transport logs. It needs Xvfb, xdotool, ImageMagick,
+installed Chromium and access to the public test endpoints. All browser data and
+test passwords are synthetic, in a temporary store; ordinary browser data is untouched.
+Chromium debugging and network logging are enabled only by the test wrapper.
 
-Initial checks passed on an ARM64 Android API 36 phone with native Linux Chromium.
-The Windows launcher also passed HTTPS, concurrency, upload, and tunnel-loss checks
-under Wine using the Linux ADB server. Other Android architectures have been
-cross-compiled but not tested on physical devices.
+UDP socket creation is not itself evidence of a transmitted packet: Chromium
+also uses UDP sockets for local route/address probes. The test checks datagram
+send/receive events and ICE candidates, rather than treating bind/connect events
+as traffic. This observation does not replace OS-enforced isolation.
 
-Before relying on a release, test the actual Windows PC with Wi-Fi/Ethernet
-disconnected, then enable them and unplug USB during browsing. Capture IPv4 and
-IPv6 traffic to investigate leaks. A proxy test does not prove OS-level isolation.
+Before relying on a release, also test the actual Windows PC with its Internet
+disconnected, and unplug USB during browsing. Only ARM64 has been exercised on
+a physical phone; other bundled Android architectures are cross-compiled.

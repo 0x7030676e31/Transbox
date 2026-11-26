@@ -7,6 +7,7 @@ Internet to fetch public test pages; downloads no private/user data.
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import http.client
+import ipaddress
 import json
 from pathlib import Path
 import queue
@@ -36,8 +37,13 @@ def socks(port, host, remote_port, command=1, expected=0):
     stream = socket.create_connection(("127.0.0.1", port), timeout=20)
     stream.sendall(b"\x05\x01\x00")
     assert exact(stream, 2) == b"\x05\x00"
-    domain = host.encode("ascii")
-    stream.sendall(bytes([5, command, 0, 3, len(domain)]) + domain + struct.pack("!H", remote_port))
+    try:
+        ip = ipaddress.ip_address(host)
+        destination = bytes([1 if ip.version == 4 else 4]) + ip.packed
+    except ValueError:
+        domain = host.encode("ascii")
+        destination = bytes([3, len(domain)]) + domain
+    stream.sendall(bytes([5, command, 0]) + destination + struct.pack("!H", remote_port))
     response = exact(stream, 10)
     assert response[0] == 5 and response[1] == expected, response
     return stream
@@ -100,6 +106,12 @@ def main():
         owned_forward = added.pop()
         assert b"Example Domain" in https(port, "example.com")
         print("PASS: TLS page fetched through phone-side DNS and TCP", flush=True)
+        with socks(port, "example.com", 80) as stream:
+            stream.sendall(b"GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n")
+            response = http.client.HTTPResponse(stream)
+            response.begin()
+            assert response.status == 200 and b"Example Domain" in response.read()
+        print("PASS: plain HTTP over phone TCP", flush=True)
         with ThreadPoolExecutor(max_workers=8) as pool:
             pages = list(pool.map(lambda _: https(port, "example.com"), range(8)))
         assert all(b"Example Domain" in page for page in pages)

@@ -13,14 +13,17 @@ anyhow.workspace = true
 clap.workspace = true
 transbox-core.workspace = true
 ctrlc = { version = "3.5", features = ["termination"] }
-getrandom = "0.3"
+getrandom.workspace = true
 tempfile = "3.27"
 serde_json = "1.0"
-sha2 = "0.10"
-zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
+sha2 = "0.11"
+zip.workspace = true
+zeroize.workspace = true
+transbox-storage = { path = "../transbox-storage" }
+eframe = { version = "0.37", default-features = false, features = ["default_fonts", "glow", "x11", "wayland"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_Security"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_Security", "Win32_UI_WindowsAndMessaging"] }

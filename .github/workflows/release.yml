@@ -88,8 +88,11 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $version -ne "transbox $($info.version)") {
             throw "Packaged version mismatch: $version"
           }
-          & $exe.FullName --list-devices
-          if ($LASTEXITCODE -ne 0) { throw 'Bundled ADB startup failed' }
+          $listing = & $exe.FullName --list-devices
+          if ($LASTEXITCODE -ne 0 -or ($listing -join "`n") -notmatch 'List of devices attached') {
+            throw 'Bundled ADB startup failed'
+          }
+          $listing
 
   draft:
     if: startsWith(github.ref, 'refs/tags/')

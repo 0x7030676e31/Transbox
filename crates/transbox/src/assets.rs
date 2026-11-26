@@ -40,7 +40,10 @@ impl Runtime {
                 .join("Transbox/runtime")
             });
         std::fs::create_dir_all(&base)?;
-        let digest = format!("{:x}", Sha256::digest(BUNDLE));
+        let digest: String = Sha256::digest(BUNDLE)
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
         let root = base.join(&digest[..24]);
         if root.join(".complete").is_file() {
             return Ok(Self { root });

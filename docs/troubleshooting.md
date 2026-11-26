@@ -1,58 +1,35 @@
 # Troubleshooting
 
-## Phone not found or unauthorized
+## Phone connection
 
-Use `--list-devices`. Check the data cable, unlock the phone, enable USB debugging,
-and accept the computer's authorization prompt. Windows may require an OEM ADB
-USB driver. If scrcpy works with the same phone and PC, the basic USB setup is
-likely ready. Select `--device SERIAL` if multiple devices are present.
+Use `--list-devices`. Check the USB data cable, enable USB debugging, unlock the
+phone, and accept its authorization prompt. Windows may need an OEM ADB driver.
+Use `--device SERIAL` when more than one device is connected.
 
-Wireless ADB and emulators are deliberately rejected. Transbox uses the local
-ADB server on port 5037; remote/custom-port ADB servers are not supported.
+Only USB devices and the local ADB server on port 5037 are supported. If USB or
+phone networking disappears, Transbox closes the browser and saves the profile.
+Reconnect and launch again; automatic reconnect is not implemented.
 
-## Unsupported `--host-resolver-rules` warning
+## Unlock or recovery
 
-The alpha deliberately uses this Chromium flag to suppress desktop DNS lookups
-while SOCKS destination names are resolved on the phone. Chromium displays an
-unsupported-flag warning. This does not indicate that its sandbox is disabled,
-and it does not prove that all possible traffic is isolated.
+A wrong password does not reset storage. If the main file is damaged, try
+**Use previous saved copy** with the password. After an interrupted shutdown,
+follow the recovery choices; do not delete working files if you need unsaved data.
+See [storage](storage.md). Reset is destructive and cannot recover a forgotten password.
 
-## TLS handshake failures / `net_error -107`
+## Browser proxy warning and protocol limits
 
-This indicates an SSL protocol failure for that connection. Repeated errors are
-not a healthy result. Some pages may still load while individual connections
-fail. The cause in the reported alpha logs has not been established.
+The `--host-resolver-rules` warning is expected: Transbox uses that flag to avoid
+desktop destination DNS lookups. Chromium's sandbox remains enabled.
 
-Record a public affected URL, whether the main page loads, the Transbox version,
-desktop OS, and whether the page works directly on the phone. Include relevant
-logs, removing private URLs, credentials, tokens, and device serials. Do not bypass
-certificate checks or install a custom CA as a workaround.
+The browser's SOCKS path carries TCP, not UDP. HTTP/3 is disabled and direct
+WebRTC UDP is blocked. Sites requiring those transports may fail; they are not
+allowed to fall back to the computer's connection. This is browser configuration,
+not OS-enforced isolation. Phone Wi-Fi may be selected instead of cellular.
 
-## Linux Wayland/Vulkan, GLib, or Fontconfig messages
+## Disk space
 
-These concern the host browser environment and may affect rendering or stability.
-They do not establish that the phone tunnel works or that traffic has leaked.
-Linux development uses your installed Chromium and its local configuration.
-Check its graphics backend and font configuration independently, and report the
-desktop session, browser version, and whether the page is blank or crashes.
-
-No graphics workaround is currently applied by Transbox. Do not disable the
-Chromium sandbox to work around a graphics error.
-
-## Phone is using Wi-Fi instead of cellular
-
-Expected: this version follows the phone's default selected network. Turn off
-phone Wi-Fi to test cellular. There is no cellular-only or SIM-selection option.
-
-## Tunnel lost
-
-The launcher stops the browser when its relay check fails. Reconnect USB and
-restart Transbox. The relay expires without heartbeats; a phone file can remain
-if USB disconnected before cleanup. Automatic reconnect is not implemented.
-
-## Download or runtime cache
-
-Unsigned alpha executables may trigger Windows reputation prompts. Verify the
-download against its published checksum and source. First launch extracts its
-runtime; ensure the cache location has enough free space and is writable.
-`TRANSBOX_CACHE_DIR` overrides the default location.
+The executable extracts its runtime on first use. The cache location must be
+writable and have enough space; set `TRANSBOX_CACHE_DIR` to override it. The
+profile also needs working space during unlock and save. Do not remove storage
+files while Transbox is running.
