@@ -4,7 +4,7 @@ A Rust launcher that runs Chromium through an Android phone's Internet connectio
 over USB ADB. The Windows executable bundles Chromium, ADB, and native Android
 relays. Other applications keep their normal connection.
 
-Experimental (`0.2.0-alpha.1`). Browser routing uses proxy settings, without
+Experimental (`0.2.0-alpha.2`). Browser routing uses proxy settings, without
 OS-enforced leak protection.
 
 ## Use
@@ -19,8 +19,8 @@ hides while Chromium is open. All windows share one profile and phone tunnel.
 Closing the last window saves and encrypts the profile before Transbox exits.
 
 ```powershell
-.\transbox-v0.2.0-alpha.1-windows-x64.exe
-.\transbox-v0.2.0-alpha.1-windows-x64.exe --device SERIAL --url https://example.org
+.\transbox-v0.2.0-alpha.2-windows-x64.exe
+.\transbox-v0.2.0-alpha.2-windows-x64.exe --device SERIAL --url https://example.org
 ```
 
 Storage is under `%LOCALAPPDATA%\Transbox\storage`; `--data-dir PATH` overrides it.

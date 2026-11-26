@@ -396,6 +396,30 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
+    #[allow(clippy::zombie_processes)] // Parent must exit first; the test's job owns cleanup.
+    fn job_process_helper() {
+        let Ok(mode) = std::env::var("TRANSBOX_JOB_TEST_MODE") else {
+            return;
+        };
+        if mode == "child" {
+            thread::sleep(Duration::from_secs(30));
+        } else {
+            // Use a real descendant without cmd.exe's special quoting and
+            // console/window behavior. The job owns and cleans up this child.
+            let _child = Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "browser::tests::job_process_helper",
+                    "--nocapture",
+                ])
+                .env("TRANSBOX_JOB_TEST_MODE", "child")
+                .spawn()
+                .unwrap();
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
     fn suspended_job_tracks_descendants_after_root_exits() {
         use std::os::windows::{
             io::AsRawHandle,
@@ -405,8 +429,13 @@ mod tests {
             JobObjects::TerminateJobObject,
             Threading::{CREATE_NO_WINDOW, CREATE_SUSPENDED, ResumeThread},
         };
-        let child = Command::new("cmd.exe")
-            .args(["/D", "/C", "start \"\" /B ping.exe -n 6 127.0.0.1 >nul"])
+        let child = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "browser::tests::job_process_helper",
+                "--nocapture",
+            ])
+            .env("TRANSBOX_JOB_TEST_MODE", "parent")
             .creation_flags(CREATE_SUSPENDED | CREATE_NO_WINDOW)
             .spawn()
             .unwrap();
@@ -422,7 +451,18 @@ mod tests {
                 u32::MAX
             );
         }
-        assert!(browser.child.wait().unwrap().success());
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let status = loop {
+            if let Some(status) = browser.child.try_wait().unwrap() {
+                break status;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "Suspended helper did not exit after resume"
+            );
+            thread::sleep(Duration::from_millis(20));
+        };
+        assert!(status.success());
         assert!(
             !browser.is_finished().unwrap(),
             "Child must retain the browser job"

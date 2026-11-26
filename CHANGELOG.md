@@ -5,7 +5,7 @@ are experimental and may change behavior or interfaces between minor versions.
 
 ## [Unreleased]
 
-## [0.2.0-alpha.1] - 2026-11-26
+## [0.2.0-alpha.2] - 2026-11-26
 
 ### Added
 
@@ -25,6 +25,11 @@ are experimental and may change behavior or interfaces between minor versions.
 
 - TCP HTTP(S), uploads and WebSockets use the phone. Unsupported browser UDP is blocked;
   Chromium SOCKS cannot tunnel UDP, so HTTP/3 remains disabled.
+
+## [0.2.0-alpha.1] - 2026-11-26
+
+Unpublished: the Windows process-lifetime test stalled. Replaced its shell helper
+with a Rust helper and bounded the wait; the tag is retained unchanged.
 
 ## [0.1.0-alpha.2] - 2026-11-22
 
